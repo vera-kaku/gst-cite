@@ -83,7 +83,7 @@ The crawler starts at `https://www.ird.govt.nz/gst` and follows links that stay 
 
 This repository contains no Inland Revenue text. Guidance is fetched when you run the ingest command and stored locally in `data/`, which is ignored by git. The app shows only the sentences it cites, always with a link to the original page. Inland Revenue's statistics are published under a Creative Commons Attribution 4.0 licence; check Inland Revenue's copyright page for the terms that apply to its guidance before publishing a hosted copy of this app.
 
-This is a personal research project, not tax advice.
+This is a personal research project. It is not affiliated with or endorsed by Inland Revenue, does not use Inland Revenue's name or logo as branding, and is not tax advice.
 
 ## Project layout
 

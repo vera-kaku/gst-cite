@@ -57,7 +57,7 @@ export function App() {
         ) : (
           <p>No guidance indexed yet. Run npm run ingest to fetch it.</p>
         )}
-        <p>A personal research project, not tax advice. Always read the linked guidance before relying on an answer.</p>
+        <p>A personal research project. Not affiliated with or endorsed by Inland Revenue, and not tax advice. Always read the linked guidance before relying on an answer.</p>
       </footer>
     </div>
   );
