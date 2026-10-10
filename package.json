@@ -1,0 +1,42 @@
+{
+  "name": "gst-cite",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Answers questions about New Zealand GST from Inland Revenue guidance, with every point checked against the cited source text.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"tsx watch --env-file-if-exists=.env src/server/index.ts\" \"vite\"",
+    "build": "vite build",
+    "start": "tsx --env-file-if-exists=.env src/server/index.ts",
+    "ingest": "tsx --env-file-if-exists=.env src/cli/ingest.ts",
+    "eval": "tsx --env-file-if-exists=.env src/cli/eval.ts",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mozilla/readability": "^0.6.0",
+    "diff": "^9.0.0",
+    "express": "^5.1.0",
+    "jsdom": "^26.1.0",
+    "minisearch": "^7.2.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "robots-parser": "^3.0.1",
+    "tsx": "^4.20.0"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.3",
+    "@types/jsdom": "^21.1.7",
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "concurrently": "^9.2.0",
+    "typescript": "^5.9.3",
+    "vite": "^7.1.0",
+    "vitest": "^3.2.0"
+  }
+}
