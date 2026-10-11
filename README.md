@@ -53,6 +53,8 @@ Without an API key the app runs in extractive mode: it skips the model and shows
 | Sentence-level citations | A page-level link makes the reader hunt for the rule. Sentence ids let the checker compare the point with the exact text, and let the link jump to that sentence. | Sentence splitting has to be careful with "e.g." and amounts like "$1.5 million". This is covered by tests. |
 | Numbers must match exactly | In tax, a wrong threshold or date is the most damaging error and the easiest to check mechanically. | A correct point that converts a figure (for example "two months" written as "2 months") can be rejected. Rejected points stay visible, so this is noticeable. |
 | Snapshots as JSON files | Simple to inspect, diff and back up for a single-source prototype. | Would move to PostgreSQL for multiple sources, multiple users or history queries. |
+| Page structure made explicit before extraction | Inland Revenue puts much of its guidance in accordions. Their titles are buttons, and sub-topics are bold paragraphs, so at first they were read as ordinary sentences and every later section kept the last real heading on the page (on the zero-rated page, "Tax Technical website"). Accordion titles now become section headings, short bold paragraphs become sub-headings, and citations show the path, e.g. "Exported goods › Timeframe for exporting". | Relies on common markup patterns (`button[aria-expanded]`, bold-only paragraphs of 8 words or fewer); a site that marks up sections differently needs its own rule. |
+| Site widgets removed by selector | A "GST Dates" widget appears on some pages and changes every month. Left in, it would make those pages look edited on every run. `config/sources.json` lists CSS selectors to drop before extraction. | Needs updating if the site adds new widgets; the tests include a widget whose dates change between runs to catch this. |
 | Menu and link lists are not indexed | They carry no guidance, and indexing them reported pages as changed whenever IRD added a link. | A few one-line link descriptions are lost from search. |
 
 ## Evaluation
@@ -102,7 +104,7 @@ Other commands: `npm test`, `npm run typecheck`, `npm run eval`. A Dockerfile an
 
 ## The crawler
 
-The crawler starts at `https://www.ird.govt.nz/gst` and follows links that stay under that path, up to 200 pages. It reads robots.txt, identifies itself in the User-Agent header, waits 1.5 seconds between requests, skips PDFs and other documents, and extracts the main content with Mozilla Readability so navigation, headers and footers are left out. The scope and rate are set in `config/sources.json`.
+The crawler starts at `https://www.ird.govt.nz/gst` and follows links that stay under that path, up to 200 pages. It reads robots.txt, identifies itself in the User-Agent header, waits 1.5 seconds between requests, skips PDFs and other documents, and extracts the main content with Mozilla Readability so navigation, headers and footers are left out. Before extraction it drops the elements listed in `removeSelectors` and turns accordion titles and bold sub-headings into real headings. The scope, rate and selectors are set in `config/sources.json`.
 
 ## Use of Inland Revenue content
 

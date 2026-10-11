@@ -21,17 +21,26 @@ describe('crawl', () => {
     try {
       const pages = await crawl(site.config, () => {});
       const paths = pages.map((p) => new URL(p.url).pathname).sort();
-      expect(paths).toEqual(['/gst', '/gst/filing-frequency', '/gst/registering-for-gst', '/gst/taxable-supply-information']);
+      expect(paths).toEqual(['/gst', '/gst/filing-frequency', '/gst/groups', '/gst/registering-for-gst', '/gst/taxable-supply-information']);
+      const hub = pages.find((p) => p.url.endsWith('/gst/groups'))!;
+      expect(hub.passages.map((p) => [p.heading, p.sentences.map((s) => s.text)])).toEqual([['GST groups', ['If you run several GST-registered entities, you can form a GST group.']]]);
       expect(site.requested).not.toContain('/gst/private');
       expect(site.requested).not.toContain('/income-tax');
       expect(site.requested).not.toContain('/gst/guide.pdf');
 
       const all = pages.flatMap((p) => p.passages.flatMap((x) => x.sentences.map((s) => s.text))).join('\n');
-      expect(all).not.toMatch(/Copyright notice|0800 000 000|KiwiSaver/);
+      expect(all).not.toMatch(/Copyright notice|0800 000 000|KiwiSaver|GST Dates|OCT 28|Show all/);
 
       const reg = pages.find((p) => p.url.endsWith('/registering-for-gst'))!;
       expect(reg.title).toBe('Registering for GST');
-      expect(reg.passages.map((p) => p.heading)).toEqual(['Who must register', 'Registering voluntarily', 'What you need to register']);
+      expect(reg.passages.map((p) => p.heading)).toEqual([
+        'Who must register',
+        'Registering voluntarily',
+        'Registering voluntarily › What you need to register',
+        'Registering a partnership',
+        'Registering a partnership › Partnership changes',
+      ]);
+      expect(reg.passages[4]!.sentences.map((s) => s.text)).toEqual(['Tell us within 30 days if a partner joins or leaves the partnership.']);
       expect(reg.passages[0]!.sentences.map((s) => s.text)).toEqual([
         'You must register for GST if your turnover was $60,000 or more in the last 12 months.',
         'You must also register if you expect your turnover to be $60,000 or more in the next 12 months.',

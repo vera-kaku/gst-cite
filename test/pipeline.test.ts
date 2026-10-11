@@ -90,7 +90,8 @@ describe('update tracking', () => {
     {
       const { updates } = await ingest(site.config, store, () => {});
       const byKind = Object.fromEntries(updates.map((u) => [new URL(u.url).pathname, u]));
-      // The index page only gained a menu link, which is not reported as a change.
+      // The index page only gained a menu link, and the registration page only had its
+      // key-dates widget change; neither is reported as a change.
       expect(Object.keys(byKind).sort()).toEqual(['/gst/filing-frequency', '/gst/remote-services']);
       expect(byKind['/gst/remote-services']!.kind).toBe('new');
       const filing = byKind['/gst/filing-frequency']!;
@@ -121,7 +122,7 @@ describe('API', () => {
     const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     try {
       const status = await (await fetch(`${base}/api/status`)).json();
-      expect(status.snapshot.pages).toBe(5);
+      expect(status.snapshot.pages).toBe(6);
       expect(status.llm).toBeNull();
 
       const ask = await fetch(`${base}/api/ask`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ question: 'Can I file GST every 6 months?' }) });

@@ -3,23 +3,68 @@ import { Readability } from '@mozilla/readability';
 import type { Page, Passage, Sentence } from './types.ts';
 import { normaliseSpace, sha256, splitSentences } from './text.ts';
 
-const BLOCKS = 'h1,h2,h3,h4,h5,p,li,tr,dt,dd,blockquote,figcaption';
-const HEADINGS = new Set(['H1', 'H2', 'H3', 'H4', 'H5']);
+const BLOCKS = 'h1,h2,h3,h4,h5,h6,p,li,tr,dt,dd,blockquote,figcaption';
+const HEADING_TAGS = ['H1', 'H2', 'H3', 'H4', 'H5', 'H6'];
 const MAX_PASSAGE_WORDS = 160;
 
 interface Block {
-  heading: boolean;
+  /** Heading level 1 to 6, or 0 for body text. */
+  level: number;
   text: string;
 }
 
-/** Pulls the main content out of a page, dropping navigation, headers and footers. */
-export function extractMain(html: string, url: string): { title: string; contentHtml: string } {
-  const dom = new JSDOM(html, { url });
-  const doc = dom.window.document;
+export interface ExtractOptions {
+  /** CSS selectors for page furniture to drop before extraction, e.g. a "key dates" widget. */
+  removeSelectors?: string[];
+}
+
+const retag = (el: Element, tag: string) => {
+  const doc = el.ownerDocument;
+  const h = doc.createElement(tag);
+  h.textContent = el.textContent;
+  el.replaceWith(h);
+  return h;
+};
+
+/**
+ * Makes the page's structure explicit before extraction:
+ *  - accordion toggle buttons ("Exported goods") become h2 headings, and headings inside
+ *    the accordion panel move one level down so they sit under it;
+ *  - a paragraph that is only a short bold phrase ("Timeframe for exporting") becomes a
+ *    minor heading.
+ * Without this, accordion titles were read as ordinary sentences and every following
+ * section kept the last real heading on the page.
+ */
+export function normaliseStructure(doc: Document, opts: ExtractOptions = {}) {
+  for (const sel of opts.removeSelectors ?? []) doc.querySelectorAll(sel).forEach((n) => n.remove());
+
   // Inland Revenue headings are bilingual: the te reo Māori title sits in a
   // <span lang="mi"> before the English one. The corpus is the English guidance,
   // so the Māori part is dropped from headings to keep titles and citations clean.
   doc.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach((h) => h.querySelectorAll('[lang|="mi"]').forEach((n) => n.remove()));
+
+  doc.querySelectorAll('button[aria-expanded]').forEach((btn) => {
+    const text = normaliseSpace(btn.textContent ?? '');
+    const panel = btn.parentElement;
+    if (!text || !panel) return btn.remove();
+    panel.querySelectorAll('h2,h3,h4,h5').forEach((h) => retag(h, `h${Number(h.tagName[1]) + 1}`));
+    retag(btn, 'h2');
+  });
+
+  doc.querySelectorAll('p').forEach((p) => {
+    const text = normaliseSpace(p.textContent ?? '');
+    const strong = p.querySelector(':scope > strong, :scope > b');
+    if (!strong || normaliseSpace(strong.textContent ?? '') !== text) return;
+    if (text.split(' ').length > 8 || /[.:;?!]$/.test(text)) return;
+    retag(p, 'h5');
+  });
+}
+
+/** Pulls the main content out of a page, dropping navigation, headers and footers. */
+export function extractMain(html: string, url: string, opts: ExtractOptions = {}): { title: string; contentHtml: string } {
+  const dom = new JSDOM(html, { url });
+  const doc = dom.window.document;
+  normaliseStructure(doc, opts);
   const rawTitle = doc.querySelector('h1')?.textContent || doc.title || url;
   const article = new Readability(doc.cloneNode(true) as Document, { charThreshold: 200 }).parse();
   let contentHtml = article?.content ?? '';
@@ -53,8 +98,9 @@ export function toBlocks(contentHtml: string): Block[] {
       text = normaliseSpace(clone.textContent ?? '');
     }
     if (!text) continue;
-    if (!HEADINGS.has(el.tagName) && isLinkOnly(clone, text)) continue;
-    blocks.push({ heading: HEADINGS.has(el.tagName), text });
+    const level = HEADING_TAGS.indexOf(el.tagName) + 1;
+    if (!level && isLinkOnly(clone, text)) continue;
+    blocks.push({ level, text });
   }
   return blocks;
 }
@@ -68,9 +114,13 @@ function isLinkOnly(el: Element, text: string): boolean {
   return linkText.length > 0 && linkText.length >= text.length * 0.9 && text.split(' ').length <= 15;
 }
 
+/** Joins the innermost two section headings, e.g. "Exported goods › Timeframe for exporting". */
+const headingLabel = (stack: Block[], title: string) => (stack.length ? stack.slice(-2).map((h) => h.text).join(' › ') : title);
+
 export function chunkPage(url: string, title: string, blocks: Block[]): Passage[] {
   const prefix = sha256(url).slice(0, 8);
   const passages: Passage[] = [];
+  const stack: Block[] = [];
   let heading = title;
   let current: string[] = [];
   let words = 0;
@@ -85,9 +135,12 @@ export function chunkPage(url: string, title: string, blocks: Block[]): Passage[
   };
 
   for (const b of blocks) {
-    if (b.heading) {
+    if (b.level) {
       flush();
-      if (normaliseSpace(b.text) !== normaliseSpace(title)) heading = b.text;
+      if (normaliseSpace(b.text) === normaliseSpace(title)) continue;
+      while (stack.length && stack[stack.length - 1]!.level >= b.level) stack.pop();
+      stack.push(b);
+      heading = headingLabel(stack, title);
       continue;
     }
     const sentences = splitSentences(b.text);
@@ -100,8 +153,8 @@ export function chunkPage(url: string, title: string, blocks: Block[]): Passage[
   return passages;
 }
 
-export function buildPage(url: string, html: string, fetchedAt = new Date().toISOString()): Page {
-  const { title, contentHtml } = extractMain(html, url);
+export function buildPage(url: string, html: string, fetchedAt = new Date().toISOString(), opts: ExtractOptions = {}): Page {
+  const { title, contentHtml } = extractMain(html, url, opts);
   const passages = chunkPage(url, title, toBlocks(contentHtml));
   const fullText = passages.flatMap((p) => p.sentences.map((s) => s.text)).join('\n');
   return { url, title, fetchedAt, hash: sha256(fullText), passages };

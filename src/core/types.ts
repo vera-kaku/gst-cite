@@ -35,6 +35,8 @@ export interface SourceConfig {
   maxPages: number;
   delayMs: number;
   userAgent: string;
+  /** CSS selectors for page furniture to drop before extraction (widgets, "show all" buttons). */
+  removeSelectors?: string[];
 }
 
 /** A sentence quoted back to the user as evidence. */

@@ -1,8 +1,17 @@
 {
   "name": "Inland Revenue GST guidance",
-  "startUrls": ["https://www.ird.govt.nz/gst"],
-  "allowPrefixes": ["https://www.ird.govt.nz/gst"],
+  "startUrls": [
+    "https://www.ird.govt.nz/gst"
+  ],
+  "allowPrefixes": [
+    "https://www.ird.govt.nz/gst"
+  ],
   "maxPages": 200,
   "delayMs": 1500,
-  "userAgent": "GSTCite/0.1 (personal research project; polite crawler, 1 request every 1.5s)"
+  "userAgent": "GSTCite/0.1 (personal research project; polite crawler, 1 request every 1.5s)",
+  "removeSelectors": [
+    "#ir-key-date-summary",
+    ".accordion-toggle-all"
+  ],
+  "_removeSelectorsNote": "The key dates widget changes every month and would make pages look edited; the Show all button is not content."
 }
