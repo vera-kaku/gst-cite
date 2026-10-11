@@ -25,6 +25,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "robots-parser": "^3.0.1",
+    "stemmer": "^2.0.1",
     "tsx": "^4.20.0"
   },
   "devDependencies": {

@@ -1,5 +1,5 @@
 import type { CheckedPoint } from './types.ts';
-import { contentWords, extractNumbers } from './text.ts';
+import { contentWords, extractNumbers, hasTerm } from './text.ts';
 
 export interface RawPoint {
   text: string;
@@ -31,7 +31,7 @@ export function checkPoint(point: RawPoint, allowed: Map<string, string>): Check
 
   const words = [...new Set(contentWords(point.text))];
   const citedWords = new Set(contentWords(cited));
-  const support = words.length ? words.filter((w) => citedWords.has(w)).length / words.length : 0;
+  const support = words.length ? words.filter((w) => hasTerm(citedWords, w)).length / words.length : 0;
   if (valid.length && support < MIN_SUPPORT) reasons.push(`only ${Math.round(support * 100)}% of the wording is supported by the cited text`);
 
   return {

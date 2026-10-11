@@ -35,3 +35,21 @@ describe('deepLink', () => {
     expect(deepLink('https://x.org', 'Six-monthly filing, explained')).toBe('https://x.org#:~:text=Six%2Dmonthly%20filing%2C%20explained');
   });
 });
+
+describe('term matching', () => {
+  it('treats register and registration, cancel and cancelling as the same term', async () => {
+    const { sameTerm } = await import('../src/core/text.ts');
+    const [reg] = contentWords('register');
+    const [regn] = contentWords('registration');
+    expect(sameTerm(reg!, regn!)).toBe(true);
+    expect(contentWords('cancelling')).toEqual(contentWords('cancel'));
+  });
+
+  it('matches "six months" with "6-monthly" but keeps zero-rated apart from rate', () => {
+    const [q] = contentWords('six months');
+    const [t] = contentWords('6-monthly');
+    expect(t!.startsWith(q!)).toBe(true);
+    expect(contentWords('zero-rated')).not.toContain(contentWords('rate')[0]);
+    expect(contentWords('one group')).not.toContain('1group');
+  });
+});

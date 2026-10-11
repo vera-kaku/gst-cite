@@ -16,7 +16,12 @@ Tax answers are only useful if they are right, so the main design goal is that n
 question
    │
    ▼
-keyword search (BM25) over passages ──► top 8 passages, every sentence given an id
+keyword search (BM25) over passages, top 40 re-ranked by how much of the
+question each passage covers ──► top 8 passages, every sentence given an id
+   │
+   ▼
+coverage check: if the best passage covers too little of the question,
+say the guidance does not cover it (no model call)
    │
    ▼
 model drafts points as JSON, each citing sentence ids
@@ -41,7 +46,10 @@ Without an API key the app runs in extractive mode: it skips the model and shows
 
 | Decision | Why | What it costs |
 | --- | --- | --- |
-| BM25 keyword search instead of embeddings | The corpus is a few hundred pages of official wording, and users ask using the same terms (GST, registration, filing frequency). Keyword search needs no model or vector database, runs instantly, and its results are easy to explain. | Misses questions phrased very differently from the guidance. The evaluation set measures this; adding embeddings with rank fusion is the next step if recall is the weak point. |
+| BM25 keyword search instead of embeddings | The corpus is about 70 pages of official wording, and many questions use the same terms (GST, registration, filing frequency). Keyword search needs no model or vector database, runs instantly, and its results are easy to explain. | Misses questions phrased differently from the guidance ("What will my GST number be?" ranks 6th). Held-out questions show this clearly (see Evaluation); embeddings with rank fusion are the next step. |
+| Re-rank by question coverage | BM25 favours short passages that repeat one query word, such as "rate" on the exchange-rate page. Re-ranking by the share of the question's terms a passage covers, weighted by how rare each term is, and preferring headings about only what was asked, fixes most of these. | Tuned on a small question set. On held-out questions it helped only slightly, so the gain should not be overstated. |
+| Decline when coverage is low | If the best passage covers under 30% of the question, or the question uses words that never appear in the guidance and coverage is under 50%, the app says the guidance does not cover it, without calling the model. | Some unrelated questions still pass (for example "income tax rates", which shares "tax" and "rate"); in LLM mode the model is the second line of defence. |
+| Porter stemming with prefix matching | The first version used a home-made stemmer that treated "register" and "registration" as different words. Porter stemming, plus treating a 5-letter stem that starts a longer one as the same word, fixed this and was the single biggest retrieval gain. | Can occasionally join unrelated words that share a long prefix. |
 | Sentence-level citations | A page-level link makes the reader hunt for the rule. Sentence ids let the checker compare the point with the exact text, and let the link jump to that sentence. | Sentence splitting has to be careful with "e.g." and amounts like "$1.5 million". This is covered by tests. |
 | Numbers must match exactly | In tax, a wrong threshold or date is the most damaging error and the easiest to check mechanically. | A correct point that converts a figure (for example "two months" written as "2 months") can be rejected. Rejected points stay visible, so this is noticeable. |
 | Snapshots as JSON files | Simple to inspect, diff and back up for a single-source prototype. | Would move to PostgreSQL for multiple sources, multiple users or history queries. |
@@ -49,14 +57,31 @@ Without an API key the app runs in extractive mode: it skips the model and shows
 
 ## Evaluation
 
-`eval/questions.json` holds 30 questions: 24 GST questions and 6 that are out of scope (income tax, KiwiSaver, Australian GST, writing an email). `npm run eval` reports:
+`eval/questions.json` holds 44 questions:
 
-- how many in-scope questions were answered and how many out-of-scope questions were declined
-- the share of drafted points that passed the checks
-- whether expected facts (such as the $60,000 registration threshold) appear in the answer
-- whether the expected page appears in the top five search results, for questions labelled with one
+- 22 GST questions used while tuning search, each labelled with the pages that answer it
+- 10 held-out GST questions written after tuning, to check the tuning was not just fitted to the first set
+- 4 real GST questions whose answers are outside the `/gst` section of the IRD site (record keeping, amending a filed return, claims before registration, land sales between registered businesses), which an honest system should decline
+- 8 unrelated questions (income tax, KiwiSaver, PAYE, Australian GST, writing an email)
 
-The full report, including every removed point and why, is written to `eval/report.md`. Run `npm run eval -- --label` to see the top pages for each question when labelling expected pages.
+`npm run eval` writes a report to `eval/report.md` with every question, the rank of its expected page, and every point that failed the checks and why.
+
+### Results so far (extractive mode, snapshot of 11 October 2026, 71 pages)
+
+Both columns were measured on the same 44 questions and the same snapshot.
+
+| Measure | First version | Current |
+| --- | --- | --- |
+| Expected page in top 5 (tuning questions) | 19 of 22 | 21 of 22 |
+| Expected page ranked first (tuning questions) | 11 of 22 | 16 of 22 |
+| Expected page in top 5 (held-out questions) | 8 of 10 | 8 of 10 |
+| Expected page ranked first (held-out questions) | 4 of 10 | 4 of 10 |
+| Expected page anywhere in the 8 passages sent to the model (all) | 27 of 32 | 31 of 32 |
+| Expected facts present in the answer | 6 of 15 | 9 of 15 |
+| Questions that should be declined and were | 0 of 12 | 6 of 12 |
+| Answerable questions wrongly declined | 0 | 0 |
+
+The held-out rows are the honest measure of the search changes: ranking the right page first did not improve on new questions. The gains that did carry over are the stemming fix and the coverage check, which declines half of the unanswerable questions without turning away any answerable ones. In LLM mode all 8 passages go to the model, so the row that matters most there is "expected page anywhere in the 8 passages".
 
 ## Running it
 

@@ -11,8 +11,12 @@ export interface EvalQuestion {
   id: string;
   question: string;
   inScope: boolean;
+  notInCorpus?: boolean;
+  /** Written after the search settings were tuned; reported separately. */
+  holdout?: boolean;
   expectFacts?: string[];
-  expectUrlContains?: string[];
+  /** Paths of pages that answer the question, e.g. "/gst/registering-for-gst". */
+  expectPages?: string[];
 }
 
 export interface EvalRow {
@@ -20,6 +24,8 @@ export interface EvalRow {
   result?: AnswerResult;
   error?: string;
   retrievalHit: boolean | null;
+  /** 1-based rank of the first expected page in the search results, or null. */
+  firstRank: number | null;
   factsFound: boolean | null;
   correctScope: boolean;
 }
@@ -31,13 +37,15 @@ export async function runEval(questions: EvalQuestion[], index: PassageIndex, ll
   for (const q of questions) {
     try {
       const result = await answerQuestion(q.question, index, llm);
-      const urls = result.retrieved.slice(0, k).map((r) => r.url);
-      const retrievalHit = q.expectUrlContains?.length ? q.expectUrlContains.some((frag) => urls.some((u) => u.includes(frag))) : null;
+      const paths = result.retrieved.map((r) => new URL(r.url).pathname.replace(/\/$/, ''));
+      const rank = q.expectPages?.length ? paths.findIndex((p) => q.expectPages!.includes(p)) : -1;
+      const firstRank = rank >= 0 ? rank + 1 : null;
+      const retrievalHit = q.expectPages?.length ? firstRank !== null && firstRank <= k : null;
       const answerText = norm(result.points.map((p) => p.text).join(' '));
       const factsFound = q.expectFacts?.length ? q.expectFacts.every((f) => answerText.includes(norm(f))) : null;
-      rows.push({ q, result, retrievalHit, factsFound, correctScope: result.answerable === q.inScope });
+      rows.push({ q, result, retrievalHit, firstRank, factsFound, correctScope: result.answerable === q.inScope });
     } catch (e) {
-      rows.push({ q, error: (e as Error).message, retrievalHit: null, factsFound: null, correctScope: false });
+      rows.push({ q, error: (e as Error).message, retrievalHit: null, firstRank: null, factsFound: null, correctScope: false });
     }
   }
 
@@ -52,10 +60,13 @@ export async function runEval(questions: EvalQuestion[], index: PassageIndex, ll
   const summary = {
     mode: llm ? llm.name : 'extractive (no model)',
     answeredInScope: pct(inScope.filter((r) => r.result?.answerable).length, inScope.length),
-    declinedOutOfScope: llm ? pct(outScope.filter((r) => r.result && !r.result.answerable).length, outScope.length) : 'n/a in extractive mode',
+    declinedOutOfScope: pct(outScope.filter((r) => r.result && !r.result.answerable).length, outScope.length),
     pointsPassingChecks: pct(verified, verified + rejected),
     expectedFactsFound: pct(withFacts.filter((r) => r.factsFound).length, withFacts.length),
     retrievalHitAtK: pct(labelled.filter((r) => r.retrievalHit).length, labelled.length),
+    expectedPageRankedFirst: pct(labelled.filter((r) => r.firstRank === 1).length, labelled.length),
+    holdoutPageInTop5: pct(labelled.filter((r) => r.q.holdout && r.retrievalHit).length, labelled.filter((r) => r.q.holdout).length),
+    holdoutPageRankedFirst: pct(labelled.filter((r) => r.q.holdout && r.firstRank === 1).length, labelled.filter((r) => r.q.holdout).length),
     errors: rows.filter((r) => r.error).length,
   };
   return { rows, summary };
@@ -77,15 +88,18 @@ export function toMarkdown(snapshotId: string, s: Awaited<ReturnType<typeof runE
     `| Drafted points that passed the citation checks | ${s.summary.pointsPassingChecks} |`,
     `| Expected facts present in the answer | ${s.summary.expectedFactsFound} |`,
     `| Expected page in top 5 results | ${s.summary.retrievalHitAtK} |`,
+    `| Expected page ranked first | ${s.summary.expectedPageRankedFirst} |`,
+    `| Held-out questions: expected page in top 5 | ${s.summary.holdoutPageInTop5} |`,
+    `| Held-out questions: expected page ranked first | ${s.summary.holdoutPageRankedFirst} |`,
     `| Errors | ${s.summary.errors} |`,
     ``,
     `## Questions`,
     ``,
-    `| Question | In scope | Answered | Points kept | Points removed | Facts found | Top page |`,
-    `| --- | --- | --- | --- | --- | --- | --- |`,
+    `| Question | Should answer | Answered | Points kept | Points removed | Facts found | Expected page rank | Top page |`,
+    `| --- | --- | --- | --- | --- | --- | --- | --- |`,
     ...s.rows.map((r) => {
       const top = r.result?.retrieved[0];
-      return `| ${r.q.question} | ${r.q.inScope ? 'yes' : 'no'} | ${r.error ? `error: ${r.error}` : yn(r.result?.answerable ?? null)} | ${r.result?.points.length ?? ''} | ${r.result?.rejected.length ?? ''} | ${yn(r.factsFound)} | ${top ? top.pageTitle : ''} |`;
+      return `| ${r.q.question} | ${r.q.inScope ? 'yes' : r.q.notInCorpus ? 'no (not in guidance)' : 'no'} | ${r.error ? `error: ${r.error}` : yn(r.result?.answerable ?? null)} | ${r.result?.points.length ?? ''} | ${r.result?.rejected.length ?? ''} | ${yn(r.factsFound)} | ${r.q.expectPages?.length ? (r.firstRank ?? 'not found') : ''} | ${top ? top.pageTitle : ''} |`;
     }),
     ``,
     `## Removed points`,

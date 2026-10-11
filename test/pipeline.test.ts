@@ -64,6 +64,16 @@ describe('answers', () => {
     expect(r.points).toEqual([]);
   });
 
+  it('declines before calling the model when the guidance does not cover the question', async () => {
+    const idx = new PassageIndex(store.latest()!);
+    let called = false;
+    const llm: LLM = { name: 'spy', complete: async () => ((called = true), '{}') };
+    const r = await answerQuestion('How much should I contribute to KiwiSaver?', idx, llm);
+    expect(r.answerable).toBe(false);
+    expect(called).toBe(false);
+    expect(r.note).toMatch(/does not appear to cover/);
+  });
+
   it('falls back to quoting source sentences when no model is configured', async () => {
     const idx = new PassageIndex(store.latest()!);
     const r = await answerQuestion('When are GST returns due?', idx, null);
@@ -140,7 +150,7 @@ describe('evaluation', () => {
     );
     const res = await runEval(
       [
-        { id: 'a', question: 'When do I have to register for GST?', inScope: true, expectFacts: ['60,000'], expectUrlContains: ['registering-for-gst'] },
+        { id: 'a', question: 'When do I have to register for GST?', inScope: true, expectFacts: ['60,000'], expectPages: ['/gst/registering-for-gst'] },
         { id: 'b', question: 'What are the income tax rates for individuals?', inScope: false },
       ],
       idx,

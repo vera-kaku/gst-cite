@@ -1,35 +1,415 @@
 {
-  "notes": "expectFacts are long-standing GST rules and should be confirmed against the indexed guidance. expectUrlContains is optional: fill it in after the first real ingest (npm run eval -- --label shows the top pages for each question).",
+  "notes": [
+    "inScope: true means the indexed GST guidance (ird.govt.nz/gst) answers the question; false means the system should say it cannot answer.",
+    "Questions marked notInCorpus are real GST questions whose answers sit outside the /gst section of the IRD site, so an honest system should decline them.",
+    "expectPages are paths of pages that answer the question. A question counts as found if any of them is in the top 5 search results.",
+    "expectFacts must appear in the answer. They were checked against the snapshot taken on 11 October 2026.",
+    "Questions marked holdout were written after the search settings were tuned and were not used for tuning. Retrieval scores on them are reported separately."
+  ],
   "questions": [
-    { "id": "register-threshold", "question": "When do I have to register for GST?", "inScope": true, "expectFacts": ["60,000"] },
-    { "id": "rate", "question": "What is the GST rate in New Zealand?", "inScope": true, "expectFacts": ["15%"] },
-    { "id": "voluntary", "question": "Can I register for GST voluntarily if my turnover is low?", "inScope": true },
-    { "id": "frequency", "question": "How often can I file GST returns?", "inScope": true },
-    { "id": "six-monthly", "question": "Who can file GST returns every six months?", "inScope": true, "expectFacts": ["500,000"] },
-    { "id": "due-date", "question": "When are GST returns and payments due?", "inScope": true, "expectFacts": ["28"] },
-    { "id": "due-march", "question": "When is the GST return for the period ending 31 March due?", "inScope": true, "expectFacts": ["7 May"] },
-    { "id": "due-november", "question": "When is the GST return for the period ending 30 November due?", "inScope": true, "expectFacts": ["15 January"] },
-    { "id": "tsi", "question": "What is taxable supply information?", "inScope": true },
-    { "id": "tsi-1000", "question": "What information is needed for a supply over $1,000?", "inScope": true },
-    { "id": "records", "question": "How long do I need to keep GST records?", "inScope": true },
-    { "id": "accounting-basis", "question": "What is the difference between the invoice basis and the payments basis?", "inScope": true },
-    { "id": "pre-registration", "question": "Can I claim GST on purchases I made before I registered?", "inScope": true },
-    { "id": "cancel", "question": "How do I cancel my GST registration?", "inScope": true },
-    { "id": "residential-rent", "question": "Is GST charged on residential rent?", "inScope": true },
-    { "id": "exports", "question": "Do I charge GST on goods I export?", "inScope": true },
-    { "id": "zero-rated", "question": "What does zero-rated mean for GST?", "inScope": true },
-    { "id": "remote-services", "question": "Do overseas businesses selling remote services to New Zealand consumers need to register for GST?", "inScope": true },
-    { "id": "mixed-use-vehicle", "question": "How do I claim GST on a vehicle I also use privately?", "inScope": true },
-    { "id": "late-filing", "question": "What happens if I file my GST return late?", "inScope": true },
-    { "id": "change-frequency", "question": "Can I change how often I file GST returns?", "inScope": true },
-    { "id": "correct-mistake", "question": "How do I fix a mistake in a GST return I have already filed?", "inScope": true },
-    { "id": "land", "question": "Is GST charged when one GST-registered business sells land to another?", "inScope": true },
-    { "id": "private-use", "question": "Do I need to make an adjustment when I use business goods privately?", "inScope": true },
-    { "id": "oos-income-tax", "question": "What are the income tax rates for individuals?", "inScope": false },
-    { "id": "oos-kiwisaver", "question": "How much should I contribute to KiwiSaver?", "inScope": false },
-    { "id": "oos-australia", "question": "What is the GST rate in Australia?", "inScope": false },
-    { "id": "oos-student-loan", "question": "How do I apply for a student loan?", "inScope": false },
-    { "id": "oos-software", "question": "What is the best accounting software for a small business?", "inScope": false },
-    { "id": "oos-email", "question": "Write an email to my client explaining their tax return.", "inScope": false }
+    {
+      "id": "register-threshold",
+      "question": "When do I have to register for GST?",
+      "inScope": true,
+      "expectFacts": [
+        "60,000"
+      ],
+      "expectPages": [
+        "/gst/registering-for-gst"
+      ]
+    },
+    {
+      "id": "rate",
+      "question": "What is the GST rate in New Zealand?",
+      "inScope": true,
+      "expectFacts": [
+        "15%"
+      ],
+      "expectPages": [
+        "/gst",
+        "/gst/what-gst-is",
+        "/gst/charging-gst",
+        "/gst/filing-and-paying-gst-and-refunds/calculating-gst"
+      ]
+    },
+    {
+      "id": "voluntary",
+      "question": "Can I register for GST voluntarily if my turnover is low?",
+      "inScope": true,
+      "expectFacts": [
+        "60,000"
+      ],
+      "expectPages": [
+        "/gst/registering-for-gst/registering-for-gst-voluntarily"
+      ]
+    },
+    {
+      "id": "frequency",
+      "question": "How often can I file GST returns?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/registering-for-gst/which-gst-accounting-basis-and-filing-frequency-should-i-use",
+        "/gst/changing-your-filing-frequency-or-accounting-basis/changing-your-gst-filing-frequency"
+      ]
+    },
+    {
+      "id": "six-monthly",
+      "question": "Who can file GST returns every six months?",
+      "inScope": true,
+      "expectFacts": [
+        "500,000"
+      ],
+      "expectPages": [
+        "/gst/registering-for-gst/which-gst-accounting-basis-and-filing-frequency-should-i-use",
+        "/gst/changing-your-filing-frequency-or-accounting-basis/changing-your-gst-filing-frequency"
+      ]
+    },
+    {
+      "id": "due-date",
+      "question": "When are GST returns and payments due?",
+      "inScope": true,
+      "expectFacts": [
+        "28th"
+      ],
+      "expectPages": [
+        "/gst/filing-and-paying-gst-and-refunds",
+        "/gst/filing-and-paying-gst-and-refunds/filing-gst",
+        "/gst/filing-and-paying-gst-and-refunds/paying-gst"
+      ]
+    },
+    {
+      "id": "due-march",
+      "question": "When is the GST return for the period ending 31 March due?",
+      "inScope": true,
+      "expectFacts": [
+        "7 May"
+      ],
+      "expectPages": [
+        "/gst/filing-and-paying-gst-and-refunds",
+        "/gst/filing-and-paying-gst-and-refunds/filing-gst",
+        "/gst/filing-and-paying-gst-and-refunds/paying-gst"
+      ]
+    },
+    {
+      "id": "due-november",
+      "question": "When is the GST return for the period ending 30 November due?",
+      "inScope": true,
+      "expectFacts": [
+        "15 January"
+      ],
+      "expectPages": [
+        "/gst/filing-and-paying-gst-and-refunds",
+        "/gst/filing-and-paying-gst-and-refunds/filing-gst",
+        "/gst/filing-and-paying-gst-and-refunds/paying-gst"
+      ]
+    },
+    {
+      "id": "tsi",
+      "question": "What is taxable supply information?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/tax-invoices-for-gst",
+        "/gst/tax-invoices-for-gst/how-tax-invoices-for-gst-work"
+      ]
+    },
+    {
+      "id": "tsi-1000",
+      "question": "What information is needed for a supply over $1,000?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/tax-invoices-for-gst/how-tax-invoices-for-gst-work"
+      ]
+    },
+    {
+      "id": "accounting-basis",
+      "question": "What is the difference between the invoice basis and the payments basis?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/registering-for-gst/which-gst-accounting-basis-and-filing-frequency-should-i-use",
+        "/gst/changing-your-filing-frequency-or-accounting-basis/changing-your-gst-accounting-basis"
+      ]
+    },
+    {
+      "id": "cancel",
+      "question": "How do I cancel my GST registration?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/gst-cancellation",
+        "/gst/gst-cancellation/cancel-your-gst-registration",
+        "/gst/gst-cancellation/when-to-cancel-your-gst-registration"
+      ]
+    },
+    {
+      "id": "residential-rent",
+      "question": "Is GST charged on residential rent?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/charging-gst/exempt-supplies",
+        "/gst/charging-gst/special-supplies",
+        "/gst/charging-gst/gst-on-property-transactions"
+      ]
+    },
+    {
+      "id": "exports",
+      "question": "Do I charge GST on goods I export?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/charging-gst/zero-rated-supplies"
+      ]
+    },
+    {
+      "id": "zero-rated",
+      "question": "What does zero-rated mean for GST?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/charging-gst/zero-rated-supplies",
+        "/gst/charging-gst"
+      ]
+    },
+    {
+      "id": "remote-services",
+      "question": "Do overseas businesses selling remote services to New Zealand consumers need to register for GST?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/gst-for-overseas-businesses",
+        "/gst/gst-for-overseas-businesses/supplying-remote-services-into-new-zealand"
+      ]
+    },
+    {
+      "id": "mixed-use-vehicle",
+      "question": "How do I claim GST on a vehicle I also use privately?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/gst-adjustments",
+        "/gst/gst-adjustments/gst-adjustments-for-mixed-use-assets",
+        "/gst/claiming-gst"
+      ]
+    },
+    {
+      "id": "late-filing",
+      "question": "What happens if I file my GST return late?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/filing-and-paying-gst-and-refunds/filing-gst"
+      ]
+    },
+    {
+      "id": "change-frequency",
+      "question": "Can I change how often I file GST returns?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/changing-your-filing-frequency-or-accounting-basis",
+        "/gst/changing-your-filing-frequency-or-accounting-basis/changing-your-gst-filing-frequency",
+        "/gst/changing-your-filing-frequency-or-accounting-basis/changing-your-gst-filing-frequency/change-your-gst-filing-frequency"
+      ]
+    },
+    {
+      "id": "private-use",
+      "question": "Do I need to make an adjustment when I use business goods privately?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/gst-adjustments",
+        "/gst/gst-adjustments/change-in-use-adjustments-for-gst"
+      ]
+    },
+    {
+      "id": "monthly-24m",
+      "question": "When must a business file GST returns monthly?",
+      "inScope": true,
+      "expectFacts": [
+        "24 million"
+      ],
+      "expectPages": [
+        "/gst/registering-for-gst/which-gst-accounting-basis-and-filing-frequency-should-i-use",
+        "/gst/changing-your-filing-frequency-or-accounting-basis/changing-your-gst-filing-frequency"
+      ]
+    },
+    {
+      "id": "tsi-request",
+      "question": "How quickly must taxable supply information be provided when a buyer asks for it?",
+      "inScope": true,
+      "expectFacts": [
+        "28 days"
+      ],
+      "expectPages": [
+        "/gst/tax-invoices-for-gst/how-tax-invoices-for-gst-work"
+      ]
+    },
+    {
+      "id": "records",
+      "question": "How long do I need to keep GST records?",
+      "inScope": false,
+      "notInCorpus": true
+    },
+    {
+      "id": "correct-mistake",
+      "question": "How do I amend a GST return I have already filed?",
+      "inScope": false,
+      "notInCorpus": true
+    },
+    {
+      "id": "pre-registration",
+      "question": "Can I claim GST on purchases I made before I registered?",
+      "inScope": false,
+      "notInCorpus": true
+    },
+    {
+      "id": "land",
+      "question": "Is GST charged when one GST-registered business sells land to another?",
+      "inScope": false,
+      "notInCorpus": true
+    },
+    {
+      "id": "oos-income-tax",
+      "question": "What are the income tax rates for individuals?",
+      "inScope": false
+    },
+    {
+      "id": "oos-kiwisaver",
+      "question": "How much should I contribute to KiwiSaver?",
+      "inScope": false
+    },
+    {
+      "id": "oos-australia",
+      "question": "What is the GST rate in Australia?",
+      "inScope": false
+    },
+    {
+      "id": "oos-student-loan",
+      "question": "How do I apply for a student loan?",
+      "inScope": false
+    },
+    {
+      "id": "oos-software",
+      "question": "What is the best accounting software for a small business?",
+      "inScope": false
+    },
+    {
+      "id": "oos-email",
+      "question": "Write an email to my client explaining their tax return.",
+      "inScope": false
+    },
+    {
+      "id": "h-refund-time",
+      "question": "How long does it take to get a GST refund?",
+      "inScope": true,
+      "expectFacts": [
+        "15 working days"
+      ],
+      "expectPages": [
+        "/gst/filing-and-paying-gst-and-refunds/gst-refunds"
+      ],
+      "holdout": true
+    },
+    {
+      "id": "h-koha",
+      "question": "Do I have to charge GST on koha?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/charging-gst/gst-and-koha"
+      ],
+      "holdout": true
+    },
+    {
+      "id": "h-low-value",
+      "question": "What counts as a low value imported good?",
+      "inScope": true,
+      "expectFacts": [
+        "1,000"
+      ],
+      "expectPages": [
+        "/gst/gst-for-overseas-businesses/gst-on-low-value-imported-goods/what-low-value-goods-are"
+      ],
+      "holdout": true
+    },
+    {
+      "id": "h-bad-debt",
+      "question": "Can I claim back GST on a bad debt?",
+      "inScope": true,
+      "expectFacts": [
+        "3/23"
+      ],
+      "expectPages": [
+        "/gst/gst-adjustments/other-gst-credit-adjustments"
+      ],
+      "holdout": true
+    },
+    {
+      "id": "h-final-return",
+      "question": "Do I need to file a return after cancelling my GST registration?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/gst-cancellation/your-final-gst-return"
+      ],
+      "holdout": true
+    },
+    {
+      "id": "h-processing",
+      "question": "How long does it take Inland Revenue to process a GST registration?",
+      "inScope": true,
+      "expectFacts": [
+        "10 working days"
+      ],
+      "expectPages": [
+        "/gst/registering-for-gst/register-for-gst"
+      ],
+      "holdout": true
+    },
+    {
+      "id": "h-group-companies",
+      "question": "Can several companies register for GST together as one group?",
+      "inScope": true,
+      "expectFacts": [
+        "66%"
+      ],
+      "expectPages": [
+        "/gst/gst-groups/registering-for-gst-as-a-group",
+        "/gst/gst-groups"
+      ],
+      "holdout": true
+    },
+    {
+      "id": "h-refund-interest",
+      "question": "Is interest paid on GST refunds?",
+      "inScope": true,
+      "expectFacts": [
+        "100"
+      ],
+      "expectPages": [
+        "/gst/filing-and-paying-gst-and-refunds/gst-refunds"
+      ],
+      "holdout": true
+    },
+    {
+      "id": "h-holiday-home",
+      "question": "How do I split GST on a holiday home I also use myself?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/claiming-gst/claim-input-tax-credits-on-expenses",
+        "/gst/gst-adjustments/gst-adjustments-for-mixed-use-assets"
+      ],
+      "holdout": true
+    },
+    {
+      "id": "h-gst-number",
+      "question": "What will my GST number be?",
+      "inScope": true,
+      "expectPages": [
+        "/gst/registering-for-gst/register-for-gst"
+      ],
+      "holdout": true
+    },
+    {
+      "id": "h-oos-fbt",
+      "question": "What is the fringe benefit tax rate?",
+      "inScope": false,
+      "holdout": true
+    },
+    {
+      "id": "h-oos-paye",
+      "question": "How much PAYE should I deduct from a secondary job?",
+      "inScope": false,
+      "holdout": true
+    }
   ]
 }

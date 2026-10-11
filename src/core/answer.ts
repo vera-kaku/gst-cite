@@ -3,7 +3,7 @@ import type { PassageIndex, Hit } from './search.ts';
 import type { LLM } from './llm.ts';
 import { parseJsonObject } from './llm.ts';
 import { checkPoints, type RawPoint } from './verify.ts';
-import { contentWords, deepLink } from './text.ts';
+import { contentWords, deepLink, hasTerm } from './text.ts';
 
 export const ANSWER_SYSTEM = `You answer questions about New Zealand GST for tax professionals, using ONLY the numbered source sentences supplied from Inland Revenue guidance.
 
@@ -48,21 +48,59 @@ function evidenceFor(points: CheckedPoint[], index: PassageIndex): Record<string
   return out;
 }
 
-/** Without an LLM, return the source sentences that best match the question. */
-function extractive(question: string, hits: Hit[]): RawPoint[] {
-  const q = new Set(contentWords(question));
-  const scored = hits.flatMap((h, rank) =>
-    h.passage.sentences.map((s) => {
-      const w = contentWords(s.text);
-      const overlap = w.filter((x) => q.has(x)).length;
-      return { s, score: overlap / Math.sqrt(w.length + 1) + (hits.length - rank) * 0.05, overlap };
+/** Questions that usually need a figure: an amount, rate, date, period or threshold. */
+const WANTS_FIGURE = /\b(when|how (much|many|long|often|quickly|soon)|rate|threshold|limit|due|deadline|percent|amount|turnover|over|under|within)\b|\d/i;
+
+/** A short line without a full stop, such as a table or list header ("6-monthly"). */
+const isLabel = (text: string) => text.split(' ').length < 4 && !/[.?!]$/.test(text);
+
+/**
+ * Without an LLM, quote the source sentences that best answer the question. Sentences
+ * come mainly from the best-ranked passages; for questions about amounts, dates or
+ * periods, sentences containing figures are preferred. A short label just before a
+ * sentence (a table header such as "6-monthly") is scored with it and quoted with it.
+ */
+export function extractive(question: string, hits: Hit[], index: PassageIndex, max = 4): RawPoint[] {
+  const terms = index.queryTerms(question);
+  const wantsFigure = WANTS_FIGURE.test(question);
+  const passageWeight = [1, 0.6, 0.4];
+  const scored = hits.slice(0, passageWeight.length).flatMap((h, rank) =>
+    h.passage.sentences.map((s, order) => {
+      const prev = h.passage.sentences[order - 1];
+      const label = prev && isLabel(prev.text) ? prev : undefined;
+      const words = new Set(contentWords(label ? `${label.text} ${s.text}` : s.text));
+      let total = 0;
+      let found = 0;
+      for (const t of terms) {
+        const w = index.idf(t);
+        total += w;
+        if (hasTerm(words, t)) found += w;
+      }
+      const sentCoverage = total ? found / total : 0;
+      const figure = wantsFigure && /\d/.test(s.text) ? 0.35 : 0;
+      const score = isLabel(s.text) ? 0 : passageWeight[rank]! * (0.6 * sentCoverage + 0.4 * h.coverage + figure);
+      return { s, label, score, sentCoverage, figure, rank, order };
     }),
   );
   return scored
-    .filter((x) => x.overlap > 0)
+    .filter((x) => x.score > 0 && (x.sentCoverage > 0 || x.figure > 0))
     .sort((a, b) => b.score - a.score)
-    .slice(0, 4)
-    .map((x) => ({ text: x.s.text, citations: [x.s.id] }));
+    .slice(0, max)
+    .sort((a, b) => a.rank - b.rank || a.order - b.order)
+    .map((x) => (x.label ? { text: `${x.label.text}: ${x.s.text}`, citations: [x.label.id, x.s.id] } : { text: x.s.text, citations: [x.s.id] }));
+}
+
+/** Below this share of the question's terms in the best passage, the guidance is treated as not covering it. */
+export const MIN_COVERAGE = 0.3;
+/** If the question uses words that never appear in the guidance, a higher share is required. */
+export const MIN_COVERAGE_WITH_UNKNOWN = 0.5;
+
+/** Decides before any model call whether the indexed guidance is likely to cover the question. */
+export function coverageCheck(question: string, hits: Hit[], index: PassageIndex): { covered: boolean; unknown: string[]; best: number } {
+  const best = hits[0]?.coverage ?? 0;
+  const unknown = index.unknownTerms(question);
+  const covered = best >= MIN_COVERAGE && !(unknown.length && best < MIN_COVERAGE_WITH_UNKNOWN);
+  return { covered, unknown, best };
 }
 
 export async function answerQuestion(question: string, index: PassageIndex, llm: LLM | null, k = 8): Promise<AnswerResult> {
@@ -72,8 +110,18 @@ export async function answerQuestion(question: string, index: PassageIndex, llm:
     retrieved: hits.map((h) => ({ passageId: h.passage.id, url: h.passage.url, pageTitle: h.passage.pageTitle, heading: h.passage.heading, score: Math.round(h.score * 100) / 100 })),
     snapshotId: index.snapshot.id,
   };
-  if (!hits.length) {
-    return { ...base, mode: llm ? 'llm' : 'extractive', answerable: false, points: [], rejected: [], evidence: {}, note: 'Nothing in the indexed guidance matches this question.' };
+  const check = coverageCheck(question, hits, index);
+  if (!hits.length || !check.covered) {
+    const words = check.unknown.length ? ` It uses terms that do not appear in the guidance at all.` : '';
+    return {
+      ...base,
+      mode: llm ? 'llm' : 'extractive',
+      answerable: false,
+      points: [],
+      rejected: [],
+      evidence: {},
+      note: `The indexed GST guidance does not appear to cover this question.${words} Only Inland Revenue's GST pages are searched.`,
+    };
   }
   const { prompt, allowed } = buildContext(hits);
 
@@ -89,7 +137,7 @@ export async function answerQuestion(question: string, index: PassageIndex, llm:
     note = parsed.note || undefined;
   } else {
     mode = 'extractive';
-    raw = extractive(question, hits);
+    raw = extractive(question, hits, index);
     note = 'No language model is configured, so these are the source sentences that best match your question.';
   }
 
