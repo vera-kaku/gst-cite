@@ -47,12 +47,13 @@ export async function crawl(cfg: SourceConfig, log: CrawlLog = console.log, fetc
   const origin = new URL(cfg.startUrls[0]!).origin;
   let robots: ReturnType<typeof robotsParser> | null = null;
   try {
-    const res = await fetchImpl(`${origin}/robots.txt`, { headers: { 'User-Agent': cfg.userAgent } });
+    const res = await fetchImpl(`${origin}/robots.txt`, { headers: { 'User-Agent': cfg.userAgent }, signal: AbortSignal.timeout(30_000) });
     if (res.ok) robots = robotsParser(`${origin}/robots.txt`, await res.text());
   } catch {
     log('Could not read robots.txt, continuing with the configured scope only.');
   }
 
+  log(`Fetching up to ${cfg.maxPages} pages from ${cfg.startUrls.join(', ')}, one every ${cfg.delayMs / 1000}s. This can take a few minutes.`);
   const queue = cfg.startUrls.map((u) => normaliseUrl(u, u)!).filter(Boolean);
   const seen = new Set(queue);
   const pages: Page[] = [];
@@ -64,7 +65,7 @@ export async function crawl(cfg: SourceConfig, log: CrawlLog = console.log, fetc
       continue;
     }
     try {
-      const res = await fetchImpl(url, { headers: { 'User-Agent': cfg.userAgent, Accept: 'text/html' }, redirect: 'follow' });
+      const res = await fetchImpl(url, { headers: { 'User-Agent': cfg.userAgent, Accept: 'text/html' }, redirect: 'follow', signal: AbortSignal.timeout(30_000) });
       const type = res.headers.get('content-type') ?? '';
       if (!res.ok || !type.includes('html')) {
         log(`skip (${res.status} ${type.split(';')[0]}) ${url}`);

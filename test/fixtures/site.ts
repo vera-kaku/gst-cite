@@ -11,7 +11,10 @@ const layout = (title: string, body: string) => `<!doctype html>
 <body>
 <header><a href="/">Home</a><nav><a href="/income-tax">Income tax</a> <a href="/gst">GST</a> <a href="/kiwisaver">KiwiSaver</a></nav></header>
 <main>
-<h1>${title}</h1>
+<h1 class="divider">
+  <span aria-hidden="true" lang="mi">Placeholder heading in te reo</span>
+  ${title}
+</h1>
 ${body}
 </main>
 <footer><p>Copyright notice for the test site. Contact us on 0800 000 000.</p><a href="/about">About</a></footer>
@@ -35,7 +38,7 @@ ${extraLink}
 
 const registering = layout(
   'Registering for GST',
-  `<h2>Who must register</h2>
+  `<h2><span lang="mi">Placeholder heading in te reo</span> Who must register</h2>
 <p>You must register for GST if your turnover was $60,000 or more in the last 12 months. You must also register if you expect your turnover to be $60,000 or more in the next 12 months.</p>
 <h2>Registering voluntarily</h2>
 <p>You can choose to register even if your turnover is under $60,000. Once registered, you must charge GST on your sales and file GST returns.</p>

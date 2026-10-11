@@ -16,12 +16,17 @@ interface Block {
 export function extractMain(html: string, url: string): { title: string; contentHtml: string } {
   const dom = new JSDOM(html, { url });
   const doc = dom.window.document;
+  // Inland Revenue headings are bilingual: the te reo Māori title sits in a
+  // <span lang="mi"> before the English one. The corpus is the English guidance,
+  // so the Māori part is dropped from headings to keep titles and citations clean.
+  doc.querySelectorAll('h1,h2,h3,h4,h5,h6').forEach((h) => h.querySelectorAll('[lang|="mi"]').forEach((n) => n.remove()));
   const rawTitle = doc.querySelector('h1')?.textContent || doc.title || url;
   const article = new Readability(doc.cloneNode(true) as Document, { charThreshold: 200 }).parse();
   let contentHtml = article?.content ?? '';
   if (normaliseSpace(article?.textContent ?? '').length < 200) {
     const main = doc.querySelector('main, [role=main], article') ?? doc.body;
-    main?.querySelectorAll('script, style, nav, header, footer, form, noscript, [aria-hidden=true]').forEach((n) => n.remove());
+    // aria-hidden is not removed: collapsed accordion panels often use it and hold real guidance.
+    main?.querySelectorAll('script, style, nav, header, footer, form, noscript').forEach((n) => n.remove());
     contentHtml = main?.innerHTML ?? '';
   }
   const title = normaliseSpace(rawTitle).replace(/\s+[|\-–]\s+[^|\-–]+$/, '');
