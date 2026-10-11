@@ -29,7 +29,7 @@ describe('crawl', () => {
       expect(site.requested).not.toContain('/gst/guide.pdf');
 
       const all = pages.flatMap((p) => p.passages.flatMap((x) => x.sentences.map((s) => s.text))).join('\n');
-      expect(all).not.toMatch(/Copyright notice|0800 000 000|KiwiSaver|GST Dates|OCT 28|Show all/);
+      expect(all).not.toMatch(/Copyright notice|0800 000 000|KiwiSaver|GST Dates|OCT 28|Show all|Last updated|Pages in this section|add a member/);
 
       const reg = pages.find((p) => p.url.endsWith('/registering-for-gst'))!;
       expect(reg.title).toBe('Registering for GST');
@@ -52,5 +52,21 @@ describe('crawl', () => {
     } finally {
       await site.close();
     }
+  });
+});
+
+describe('extraction without a content container', () => {
+  it('falls back to Readability and still drops the configured widget', async () => {
+    const { buildPage } = await import('../src/core/chunk.ts');
+    const { groupsHub } = await import('./fixtures/site.ts');
+    const html = groupsHub(1).replace('id="main-content"', 'id="content"');
+    const text = (p: ReturnType<typeof buildPage>) => p.passages.map((x) => [x.heading, x.sentences.map((s) => s.text)]);
+    const kept = buildPage('https://example.org/gst/groups', html, undefined, { removeSelectors: ['#ir-key-date-summary'] });
+    const keptText = JSON.stringify(text(kept));
+    expect(keptText).toContain('If you run several GST-registered entities, you can form a GST group.');
+    expect(keptText).not.toMatch(/OCT|GST Dates/);
+    // Without the selector the widget's dates leak in, which is what the selector is for.
+    const leaked = buildPage('https://example.org/gst/groups', html, undefined, {});
+    expect(JSON.stringify(text(leaked))).toMatch(/OCT|GST Dates/);
   });
 });

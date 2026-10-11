@@ -54,6 +54,7 @@ Without an API key the app runs in extractive mode: it skips the model and shows
 | Numbers must match exactly | In tax, a wrong threshold or date is the most damaging error and the easiest to check mechanically. | A correct point that converts a figure (for example "two months" written as "2 months") can be rejected. Rejected points stay visible, so this is noticeable. |
 | Snapshots as JSON files | Simple to inspect, diff and back up for a single-source prototype. | Would move to PostgreSQL for multiple sources, multiple users or history queries. |
 | Page structure made explicit before extraction | Inland Revenue puts much of its guidance in accordions. Their titles are buttons, and sub-topics are bold paragraphs, so at first they were read as ordinary sentences and every later section kept the last real heading on the page (on the zero-rated page, "Tax Technical website"). Accordion titles now become section headings, short bold paragraphs become sub-headings, and citations show the path, e.g. "Exported goods › Timeframe for exporting". | Relies on common markup patterns (`button[aria-expanded]`, bold-only paragraphs of 8 words or fewer); a site that marks up sections differently needs its own rule. |
+| Use the site's content container when it has one | Readability guesses which block of a page is the content. On short hub pages it picked the wrong block, and on the zero-rated page it silently dropped a whole section ("Land transactions"). Inland Revenue pages mark their content with `#main-content`, so `config/sources.json` names it and Readability is only the fallback. Text placed directly in a `div` rather than a paragraph is also kept now. | The selector is site-specific; if the site changes its markup, extraction falls back to Readability and the crawl log warns about pages with very little text. |
 | Site widgets removed by selector | A "GST Dates" widget appears on some pages and changes every month. Left in, it would make those pages look edited on every run. `config/sources.json` lists CSS selectors to drop before extraction. | Needs updating if the site adds new widgets; the tests include a widget whose dates change between runs to catch this. |
 | Menu and link lists are not indexed | They carry no guidance, and indexing them reported pages as changed whenever IRD added a link. | A few one-line link descriptions are lost from search. |
 
@@ -61,16 +62,16 @@ Without an API key the app runs in extractive mode: it skips the model and shows
 
 `eval/questions.json` holds 44 questions:
 
-- 22 GST questions used while tuning search, each labelled with the pages that answer it
+- 23 GST questions used while tuning search, each labelled with the pages that answer it
 - 10 held-out GST questions written after tuning, to check the tuning was not just fitted to the first set
-- 4 real GST questions whose answers are outside the `/gst` section of the IRD site (record keeping, amending a filed return, claims before registration, land sales between registered businesses), which an honest system should decline
+- 3 real GST questions whose answers are outside the `/gst` section of the IRD site (record keeping, amending a filed return, claims before registration), which an honest system should decline. A fourth (land sales between registered businesses) was first put in this group, then found to be answered by a section the first extractor had dropped
 - 8 unrelated questions (income tax, KiwiSaver, PAYE, Australian GST, writing an email)
 
 `npm run eval` writes a report to `eval/report.md` with every question, the rank of its expected page, and every point that failed the checks and why.
 
 ### Results so far (extractive mode, snapshot of 11 October 2026, 71 pages)
 
-Both columns were measured on the same 44 questions and the same snapshot.
+Both columns were measured on the same 44 questions and the same snapshot, before the content-container change above; they will be re-measured on a fresh snapshot.
 
 | Measure | First version | Current |
 | --- | --- | --- |

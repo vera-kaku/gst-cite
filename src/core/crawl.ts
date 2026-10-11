@@ -72,7 +72,7 @@ export async function crawl(cfg: SourceConfig, log: CrawlLog = console.log, fetc
       } else {
         const finalUrl = normaliseUrl(res.url || url, url) ?? url;
         const html = await res.text();
-        const page = buildPage(finalUrl, html, undefined, { removeSelectors: cfg.removeSelectors });
+        const page = buildPage(finalUrl, html, undefined, { removeSelectors: cfg.removeSelectors, contentSelector: cfg.contentSelector });
         const words = page.passages.reduce((n, p) => n + p.sentences.reduce((m, s) => m + s.text.split(' ').length, 0), 0);
         if (words < 30) log(`warning: only ${words} words extracted from ${finalUrl}; the page may render its content with JavaScript.`);
         if (!pages.some((p) => p.url === finalUrl)) pages.push(page);

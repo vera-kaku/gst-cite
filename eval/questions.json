@@ -256,8 +256,11 @@
     {
       "id": "land",
       "question": "Is GST charged when one GST-registered business sells land to another?",
-      "inScope": false,
-      "notInCorpus": true
+      "inScope": true,
+      "expectPages": [
+        "/gst/charging-gst/zero-rated-supplies"
+      ],
+      "note": "First labelled as not in the guidance, because the first extractor dropped the zero-rated page's Land transactions section."
     },
     {
       "id": "oos-income-tax",

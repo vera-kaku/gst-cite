@@ -16,6 +16,11 @@ interface Block {
 export interface ExtractOptions {
   /** CSS selectors for page furniture to drop before extraction, e.g. a "key dates" widget. */
   removeSelectors?: string[];
+  /**
+   * CSS selector for the element that holds the page's own content. When it is present,
+   * that element is used as is; otherwise Readability guesses which block is the content.
+   */
+  contentSelector?: string;
 }
 
 const retag = (el: Element, tag: string) => {
@@ -66,6 +71,15 @@ export function extractMain(html: string, url: string, opts: ExtractOptions = {}
   const doc = dom.window.document;
   normaliseStructure(doc, opts);
   const rawTitle = doc.querySelector('h1')?.textContent || doc.title || url;
+  const title = normaliseSpace(rawTitle).replace(/\s+[|\-–]\s+[^|\-–]+$/, '');
+
+  const marked = opts.contentSelector ? doc.querySelector(opts.contentSelector) : null;
+  if (marked) {
+    // "Pages in this section" menus and similar navigation are not guidance.
+    marked.querySelectorAll('script, style, nav, form, noscript').forEach((n) => n.remove());
+    return { title, contentHtml: marked.innerHTML };
+  }
+
   const article = new Readability(doc.cloneNode(true) as Document, { charThreshold: 200 }).parse();
   let contentHtml = article?.content ?? '';
   if (normaliseSpace(article?.textContent ?? '').length < 200) {
@@ -74,14 +88,44 @@ export function extractMain(html: string, url: string, opts: ExtractOptions = {}
     main?.querySelectorAll('script, style, nav, header, footer, form, noscript').forEach((n) => n.remove());
     contentHtml = main?.innerHTML ?? '';
   }
-  const title = normaliseSpace(rawTitle).replace(/\s+[|\-–]\s+[^|\-–]+$/, '');
   return { title, contentHtml };
+}
+
+const INLINE = new Set(['A', 'ABBR', 'B', 'BR', 'CITE', 'CODE', 'EM', 'I', 'MARK', 'S', 'SMALL', 'SPAN', 'STRONG', 'SUB', 'SUP', 'TIME', 'U']);
+
+/**
+ * Wraps text that sits directly in a container (for example
+ * `<div class="field-content">Zero-rated supplies are...</div>`) in a paragraph, so it is
+ * not skipped. Only block elements are read later, and some pages put their opening
+ * sentence straight into a div.
+ */
+export function wrapLooseText(root: Element) {
+  const doc = root.ownerDocument;
+  const containers = [root, ...Array.from(root.querySelectorAll('*'))].filter((el) => !el.matches(BLOCKS) && !el.closest(BLOCKS) && !INLINE.has(el.tagName));
+  for (const el of containers) {
+    let run: ChildNode[] = [];
+    const flush = () => {
+      if (run.some((n) => normaliseSpace(n.textContent ?? ''))) {
+        const p = doc.createElement('p');
+        run[0]!.before(p);
+        for (const n of run) p.append(n);
+      }
+      run = [];
+    };
+    for (const node of Array.from(el.childNodes)) {
+      const inline = node.nodeType === 3 || (node.nodeType === 1 && INLINE.has((node as Element).tagName));
+      if (inline) run.push(node);
+      else flush();
+    }
+    flush();
+  }
 }
 
 /** Turns content HTML into ordered text blocks without duplicating nested text. */
 export function toBlocks(contentHtml: string): Block[] {
   const dom = new JSDOM(`<body>${contentHtml}</body>`);
   const doc = dom.window.document;
+  wrapLooseText(doc.body);
   const els = Array.from(doc.body.querySelectorAll(BLOCKS));
   const blocks: Block[] = [];
   for (const el of els) {

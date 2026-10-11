@@ -37,6 +37,8 @@ export interface SourceConfig {
   userAgent: string;
   /** CSS selectors for page furniture to drop before extraction (widgets, "show all" buttons). */
   removeSelectors?: string[];
+  /** CSS selector for the element holding each page's own content; Readability is used when absent. */
+  contentSelector?: string;
 }
 
 /** A sentence quoted back to the user as evidence. */

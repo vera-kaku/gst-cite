@@ -6,7 +6,11 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 
-const layout = (title: string, body: string) => `<!doctype html>
+/**
+ * Page template. Like Inland Revenue's pages, the page's own content sits in
+ * #main-content, while the title and any side widget sit outside it.
+ */
+const layout = (title: string, body: string, widget = '') => `<!doctype html>
 <html><head><title>${title} | Test Revenue Site</title></head>
 <body>
 <header><a href="/">Home</a><nav><a href="/income-tax">Income tax</a> <a href="/gst">GST</a> <a href="/kiwisaver">KiwiSaver</a></nav></header>
@@ -15,7 +19,11 @@ const layout = (title: string, body: string) => `<!doctype html>
   <span aria-hidden="true" lang="mi">Placeholder heading in te reo</span>
   ${title}
 </h1>
+${widget}
+<div id="main-content">
 ${body}
+</div>
+<p>Last updated: 1 Jan 2026</p>
 </main>
 <footer><p>Copyright notice for the test site. Contact us on 0800 000 000.</p><a href="/about">About</a></footer>
 </body></html>`;
@@ -52,8 +60,7 @@ const keyDates = (version: 1 | 2) => {
 const registering = (version: 1 | 2) =>
   layout(
     'Registering for GST',
-    `${keyDates(version)}
-<h2><span lang="mi">Placeholder heading in te reo</span> Who must register</h2>
+    `<h2><span lang="mi">Placeholder heading in te reo</span> Who must register</h2>
 <p>You must register for GST if your turnover was $60,000 or more in the last 12 months. You must also register if you expect your turnover to be $60,000 or more in the next 12 months.</p>
 <h2>Registering voluntarily</h2>
 <p>You can choose to register even if your turnover is under $60,000. Once registered, you must charge GST on your sales and file GST returns.</p>
@@ -69,6 +76,7 @@ const registering = (version: 1 | 2) =>
 <p>Tell us within 30 days if a partner joins or leaves the partnership.</p>
 </div>
 </div>`,
+    keyDates(version),
   );
 
 const filing = (v2: boolean) =>
@@ -82,9 +90,17 @@ const filing = (v2: boolean) =>
 <table><tr><th>Period ends</th><th>Due date</th></tr><tr><td>31 March</td><td>7 May</td></tr><tr><td>30 November</td><td>15 January</td></tr></table>`,
   );
 
-/** A short hub page. Readability finds too little text here, so the whole main area is used, widget included. */
-const groupsHub = (version: 1 | 2) =>
-  layout('GST groups', `${keyDates(version)}<p>If you run several GST-registered entities, you can form a GST group.</p>`);
+/**
+ * A short hub page. Its opening sentence sits straight in a div, not a paragraph, and it
+ * lists child pages under "Pages in this section", as on Inland Revenue's hub pages.
+ */
+export const groupsHub = (version: 1 | 2) =>
+  layout(
+    'GST groups',
+    `<div class="field-content">If you run several GST-registered entities, you can form a GST group.</div>
+<nav><h2>Pages in this section</h2><ul><li><a href="/gst/groups/join">Joining a group</a><p>How to add a member to a group.</p></li></ul></nav>`,
+    keyDates(version),
+  );
 
 const supplyInfo = layout(
   'Taxable supply information',
@@ -138,7 +154,7 @@ export async function serveSite(initial: 1 | 2 = 1) {
     setVersion: (v: 1 | 2) => {
       routes = siteRoutes(v);
     },
-    config: { name: 'Test site', startUrls: [`${base}/gst`], allowPrefixes: [`${base}/gst`], maxPages: 20, delayMs: 0, userAgent: 'GSTCiteTest', removeSelectors: ['#ir-key-date-summary', '.accordion-toggle-all'] },
+    config: { name: 'Test site', startUrls: [`${base}/gst`], allowPrefixes: [`${base}/gst`], maxPages: 20, delayMs: 0, userAgent: 'GSTCiteTest', removeSelectors: ['#ir-key-date-summary', '.accordion-toggle-all'], contentSelector: '#main-content' },
     close: () => new Promise<void>((r) => server.close(() => r())),
   };
 }
