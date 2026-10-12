@@ -26,5 +26,5 @@ Answers New Zealand GST questions from Inland Revenue's GST guidance (https://ww
 - Before changing labels in `eval/questions.json`, confirm against the snapshot text where the answer is.
 
 ## Status (12 October 2026)
-- Third ingest pending after switching extraction to `#main-content`. After it: re-run eval, update the results table in README.md, and re-check whether the `records`, `pre-registration` and `correct-mistake` questions really have no answer under /gst.
-- Next: run the eval in LLM mode with an API key, deploy a demo, push to GitHub, consider hybrid search with embeddings, which the holdout results suggest is the main remaining gap.
+- Done: fresh ingest with `#main-content` (snapshot `2026-10-11T11-18-02-775Z`, 71 pages, 458 passages), eval re-run, README results table updated with a third column and a note on the changed denominators. Checked against the snapshot: `records` and `pre-registration` have no answer under /gst; `correct-mistake` only says mistakes can be fixed, not how, so it stays unanswerable (see its note).
+- Next: look into the `rate` regression (none of its four expected pages are in the 8 passages; the top passage is about currency conversion), run the eval in LLM mode with an API key, push to GitHub, deploy a demo, consider hybrid search with embeddings, which the holdout results suggest is the main remaining gap.
