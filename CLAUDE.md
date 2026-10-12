@@ -27,4 +27,5 @@ Answers New Zealand GST questions from Inland Revenue's GST guidance (https://ww
 
 ## Status (12 October 2026)
 - Done: fresh ingest with `#main-content` (snapshot `2026-10-11T11-18-02-775Z`, 71 pages, 458 passages), eval re-run, README results table updated with a third column and a note on the changed denominators. Checked against the snapshot: `records` and `pre-registration` have no answer under /gst; `correct-mistake` only says mistakes can be fixed, not how, so it stays unanswerable (see its note).
-- Next: look into the `rate` regression (none of its four expected pages are in the 8 passages; the top passage is about currency conversion), run the eval in LLM mode with an API key, push to GitHub, deploy a demo, consider hybrid search with embeddings, which the holdout results suggest is the main remaining gap.
+- Published at https://github.com/vera-kaku/gst-cite.
+- Next: look into the `rate` regression (none of its four expected pages are in the 8 passages; the top passage is about currency conversion), run the eval in LLM mode with an API key, deploy a demo, consider hybrid search with embeddings, which the holdout results suggest is the main remaining gap.
