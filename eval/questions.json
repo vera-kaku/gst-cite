@@ -245,7 +245,8 @@
       "id": "correct-mistake",
       "question": "How do I amend a GST return I have already filed?",
       "inScope": false,
-      "notInCorpus": true
+      "notInCorpus": true,
+      "note": "Checked against the 11 October 2026 snapshot. /gst/filing-and-paying-gst-and-refunds/filing-gst/file-your-gst-return says mistakes can be fixed after a return is submitted, but no page under /gst says how, so the question stays unanswerable."
     },
     {
       "id": "pre-registration",

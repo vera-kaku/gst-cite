@@ -69,22 +69,28 @@ Without an API key the app runs in extractive mode: it skips the model and shows
 
 `npm run eval` writes a report to `eval/report.md` with every question, the rank of its expected page, and every point that failed the checks and why.
 
-### Results so far (extractive mode, snapshot of 11 October 2026, 71 pages)
+### Results so far (extractive mode, 44 questions)
 
-Both columns were measured on the same 44 questions and the same snapshot, before the content-container change above; they will be re-measured on a fresh snapshot.
+The first two columns were measured on one snapshot taken before the content-container change above. The third column is a fresh crawl with the content container (snapshot `2026-10-11T11-18-02-775Z`, 71 pages, 458 passages), so its search settings match the "Search tuned" column but its extraction does not.
 
-| Measure | First version | Current |
-| --- | --- | --- |
-| Expected page in top 5 (tuning questions) | 19 of 22 | 21 of 22 |
-| Expected page ranked first (tuning questions) | 11 of 22 | 16 of 22 |
-| Expected page in top 5 (held-out questions) | 8 of 10 | 8 of 10 |
-| Expected page ranked first (held-out questions) | 4 of 10 | 4 of 10 |
-| Expected page anywhere in the 8 passages sent to the model (all) | 27 of 32 | 31 of 32 |
-| Expected facts present in the answer | 6 of 15 | 9 of 15 |
-| Questions that should be declined and were | 0 of 12 | 6 of 12 |
-| Answerable questions wrongly declined | 0 | 0 |
+The denominators change in the third column because the land question moved from "should be declined" to "should be answered" once the fresh extraction kept the section that answers it. That gives 23 tuning questions instead of 22, 33 answerable questions instead of 32, and 11 questions to decline instead of 12. The land question is ranked third, so it adds to "top 5" but not to "ranked first".
 
-The held-out rows are the honest measure of the search changes: ranking the right page first did not improve on new questions. The gains that did carry over are the stemming fix and the coverage check, which declines half of the unanswerable questions without turning away any answerable ones. In LLM mode all 8 passages go to the model, so the row that matters most there is "expected page anywhere in the 8 passages".
+| Measure | First version | Search tuned | Content container, fresh snapshot |
+| --- | --- | --- | --- |
+| Expected page in top 5 (tuning questions) | 19 of 22 | 21 of 22 | 21 of 23 |
+| Expected page ranked first (tuning questions) | 11 of 22 | 16 of 22 | 17 of 23 |
+| Expected page in top 5 (held-out questions) | 8 of 10 | 8 of 10 | 7 of 10 |
+| Expected page ranked first (held-out questions) | 4 of 10 | 4 of 10 | 5 of 10 |
+| Expected page anywhere in the 8 passages sent to the model (all) | 27 of 32 | 31 of 32 | 31 of 33 |
+| Expected facts present in the answer | 6 of 15 | 9 of 15 | 9 of 15 |
+| Questions that should be declined and were | 0 of 12 | 6 of 12 | 5 of 11 |
+| Answerable questions wrongly declined | 0 | 0 | 0 |
+
+"Top 5" and "ranked first" count passages: the expected page must supply one of the first five passages, or the first one.
+
+The held-out rows are the honest measure of the search changes. Search tuning did not improve them; after the content-container change, one more held-out question has its page ranked first and one fewer has it in the top 5, so they are roughly level there too. The gains that did carry over are the stemming fix and the coverage check, which declines about half of the unanswerable questions without turning away any answerable ones (both held-out unanswerable questions are declined). In LLM mode all 8 passages go to the model, so the row that matters most there is "expected page anywhere in the 8 passages".
+
+Known misses on the fresh snapshot: "What is the GST rate in New Zealand?" finds none of its four expected pages in the 8 passages, even though the GST home page states the 15% rate (the top passage is about converting currency to New Zealand dollars). The held-out question on low value imported goods also misses all 8 passages.
 
 ## Running it
 
